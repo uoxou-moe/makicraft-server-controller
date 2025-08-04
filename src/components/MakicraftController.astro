@@ -20,15 +20,63 @@
 </style>
 
 <script>
-  const apiBaseUrl = import.meta.env.API_ENDPOINT;
-  const instanceId = import.meta.env.INSTANCE_ID;
+  type AppConfig = {
+    apiEndpoint: string | null;
+    instanceId: string | null;
+  };
+
+  let appConfig: AppConfig | null = null;
+
+  /**
+   * サイトの設定情報を非同期で取得する関数。
+   * @returns {Promise<AppConfig>} - AppConfig型のオブジェクトを返すPromise
+   */
+  async function getAppConfig(): Promise<AppConfig> {
+    // キャッシュがあればそれを返す
+    if (appConfig) {
+      return appConfig;
+    }
+
+    try {
+      // Vercelでホストされている自分のサイトのAPIルートを叩く
+      const response = await fetch('/api/config');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load configuration');
+      }
+
+      const configData: AppConfig = await response.json();
+      appConfig = configData; // 結果をキャッシュ
+      return appConfig;
+
+    } catch (error) {
+      console.error('Configuration fetch error:', error);
+      return { apiEndpoint: null, instanceId: null };
+    }
+  }
 
   const getStatusBtn = document.getElementById('getStatusBtn');
   const startInstanceBtn = document.getElementById('startInstanceBtn');
   const resultDiv = document.getElementById('result');
 
+  /**
+   * APIリクエストを送信する関数
+   * @param {string} path - APIのパス (例: '/status')
+   * @param {string} instanceId - EC2インスタンスのID
+   */
   async function sendRequest(path: string, instanceId: string) {
     if (!resultDiv) return;
+
+    resultDiv.textContent = '設定情報を取得中...';
+    const config = await getAppConfig();
+    const apiBaseUrl = config.apiEndpoint;
+
+    // 設定情報が取得できなかった場合のエラー処理
+    if (!apiBaseUrl) {
+      resultDiv.textContent = 'エラー: APIエンドポイントの設定を取得できませんでした。';
+      return;
+    }
+
     resultDiv.textContent = '処理中...';
 
     if (!instanceId) {
@@ -61,12 +109,21 @@
     }
   }
 
-  getStatusBtn?.addEventListener('click', () => {
-    sendRequest('/status', instanceId);
+  getStatusBtn?.addEventListener('click', async () => {
+    const config = await getAppConfig();
+    if (config.instanceId) {
+      sendRequest('/status', config.instanceId);
+    } else {
+      console.error("Instance ID is not configured.");
+    }
   });
 
-  startInstanceBtn?.addEventListener('click', () => {
-    // start is not implemented yet
-    sendRequest('/start', instanceId);
+  startInstanceBtn?.addEventListener('click', async () => {
+    const config = await getAppConfig();
+    if (config.instanceId) {
+      sendRequest('/start', config.instanceId);
+    } else {
+      console.error("Instance ID is not configured.");
+    }
   });
 </script>
