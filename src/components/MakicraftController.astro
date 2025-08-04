@@ -8,7 +8,10 @@
   </div>
 
   <h3>結果:</h3>
-  <pre id="result">ここに結果が表示されます。</pre>
+  <div id="result-area">
+    <!-- 初期メッセージ -->
+    <p class="placeholder">ここに結果が表示されます。</p>
+  </div>
 </div>
 
 <style>
@@ -16,7 +19,60 @@
   input, button { padding: 10px; margin: 5px; font-size: 16px; border-radius: 4px; border: 1px solid #ccc; }
   button { cursor: pointer; background-color: #0d6efd; color: white; border-color: #0d6efd; transition: background-color 0.2s; }
   button:hover { background-color: #0b5ed7; }
-  #result { margin-top: 20px; padding: 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; min-height: 100px; font-family: 'Courier New', Courier, monospace; }
+  #result-area {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    min-height: 100px;
+    transition: background-color 0.3s;
+  }
+
+  #result-area .placeholder {
+    color: #6c757d;
+  }
+
+  #result-area ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  #result-area li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  #result-area li:last-child {
+    border-bottom: none;
+  }
+
+  #result-area li strong {
+    margin-right: 1rem;
+  }
+</style>
+
+<!-- JavaScriptから動的に生成される要素に適用するためのグローバルスタイル -->
+<style is:global>
+  /* ステータス表示用のスタイル */
+  .status {
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    color: white;
+  }
+
+  .status.running { background-color: #28a745; } /* 緑 */
+  .status.stopped { background-color: #dc3545; } /* 赤 */
+  .status.pending,
+  .status.stopping {
+    background-color: #ffc107;
+    color: #333; /* 黄色の背景に白い文字は見えにくいので黒系の色に変更 */
+  }
+  .status.terminated { background-color: #6c757d; } /* グレー */
 </style>
 
 <script>
@@ -55,9 +111,44 @@
     }
   }
 
+  /**
+ * 結果表示エリアを更新するヘルパー関数
+ * @param {HTMLElement} parentElement - 結果を表示する親要素
+ * @param {object} data - Lambdaからのレスポンスデータ
+ */
+function displayResult(parentElement: HTMLElement, data: { instanceId: string, status: string, instanceType: string, publicIpAddress?: string }) {
+  parentElement.innerHTML = '';
+
+  const list = document.createElement('ul');
+
+  const items = {
+    'ステータス': `<span class="status ${data.status}">${data.status}</span>`, // ステータスは特別扱い
+    'パブリックIP': data.publicIpAddress || 'N/A' // IPがない場合は 'N/A' を表示
+  };
+
+  for (const [key, value] of Object.entries(items)) {
+    const listItem = document.createElement('li');
+    listItem.innerHTML = `
+      <strong>${key}</strong>
+      <span>${value}</span>
+    `;
+    list.appendChild(listItem);
+  }
+
+  parentElement.appendChild(list);
+}
+
+/**
+ * エラーメッセージを表示するヘルパー関数
+ * @param {HTMLElement} parentElement - エラーを表示する親要素
+ * @param {string} message - 表示するエラーメッセージ
+ */
+function displayError(parentElement: HTMLElement, message: string) {
+  parentElement.innerHTML = `<p class="placeholder" style="color: #dc3545;">${message}</p>`;
+}
+
   const getStatusBtn = document.getElementById('getStatusBtn');
   const startInstanceBtn = document.getElementById('startInstanceBtn');
-  const resultDiv = document.getElementById('result');
 
   /**
    * APIリクエストを送信する関数
@@ -65,22 +156,23 @@
    * @param {string} instanceId - EC2インスタンスのID
    */
   async function sendRequest(path: string, instanceId: string) {
-    if (!resultDiv) return;
+    const resultArea = document.getElementById('result-area');
+    if (!resultArea) return;
 
-    resultDiv.textContent = '設定情報を取得中...';
+    resultArea.innerHTML = '設定情報を取得中...';
     const config = await getAppConfig();
     const apiBaseUrl = config.apiEndpoint;
 
     // 設定情報が取得できなかった場合のエラー処理
     if (!apiBaseUrl) {
-      resultDiv.textContent = 'エラー: APIエンドポイントの設定を取得できませんでした。';
+      resultArea.innerHTML = 'エラー: APIエンドポイントの設定を取得できませんでした。';
       return;
     }
 
-    resultDiv.textContent = '処理中...';
+    resultArea.innerHTML = '処理中...';
 
     if (!instanceId) {
-      resultDiv.textContent = 'エラー: Missing instance ID';
+      resultArea.innerHTML = 'エラー: Missing instance ID';
       return;
     }
 
@@ -97,14 +189,14 @@
         throw new Error(data.error || '不明なエラーが発生しました');
       }
 
-      resultDiv.textContent = JSON.stringify(data, null, 2);
+      displayResult(resultArea, data);
 
     } catch (error) {
       console.error('API request failed:', error);
       if (error instanceof Error) {
-        resultDiv.textContent = `エラー: ${error.message}`;
+        displayError(resultArea, error.message);
       } else {
-        resultDiv.textContent = '予期せぬエラーが発生しました。';
+        resultArea.innerHTML = '予期せぬエラーが発生しました。';
       }
     }
   }

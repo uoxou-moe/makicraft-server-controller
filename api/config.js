@@ -1,5 +1,3 @@
-// このファイルはVercelのサーバーレス関数として実行されます
-
 export default function handler(request, response) {
   const apiEndpoint = process.env.API_ENDPOINT;
   const instanceId = process.env.INSTANCE_ID;
