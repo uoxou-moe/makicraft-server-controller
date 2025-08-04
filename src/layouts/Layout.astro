@@ -1,0 +1,132 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} | My Astro App</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <a href="/" class="logo">Makicraft Controller</a>
+        <nav>
+          <a href="/">Home</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <p>© {new Date().getFullYear()} supurazako. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <style is:global>
+      :root {
+        --accent-color: #0d6efd;
+        --text-color: #333;
+        --bg-color: #ffffff;
+        --bg-light-color: #f8f9fa;
+        --border-color: #dee2e6;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        font-family: 'Noto Sans JP', sans-serif;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: var(--bg-color);
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      main {
+        flex: 1;
+        width: 100%;
+        max-width: 960px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+      }
+
+      a {
+        color: var(--accent-color);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      h1, h2, h3 {
+        line-height: 1.2;
+        margin-bottom: 1rem;
+      }
+
+      h1 { font-size: 2.5rem; }
+      h2 { font-size: 2rem; }
+      h3 { font-size: 1.5rem; }
+    </style>
+
+    <style>
+      header, footer {
+        background-color: var(--bg-light-color);
+        border-bottom: 1px solid var(--border-color);
+      }
+      footer {
+        border-top: 1px solid var(--border-color);
+        border-bottom: none;
+        margin-top: auto;
+      }
+
+      .header-inner, .footer-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 1rem 1.5rem;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-color);
+      }
+      .logo:hover {
+        text-decoration: none;
+      }
+
+      nav a {
+        margin-left: 1.5rem;
+        font-size: 1rem;
+      }
+    </style>
+  </body>
+</html>
