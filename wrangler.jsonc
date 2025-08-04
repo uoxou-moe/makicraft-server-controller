@@ -1,5 +1,7 @@
 {
-    "name": "makicraft-server-controller",
-    "compatibility_date": "2025-08-04",
-    "main": "src/index.html"
+  "name": "makicraft-server-controller",
+  "compatibility_date": "2025-08-04",
+  "assets": {
+    "directory": "./dist"
+  }
 }
