@@ -153,9 +153,9 @@ function displayError(parentElement: HTMLElement, message: string) {
   /**
    * APIリクエストを送信する関数
    * @param {string} path - APIのパス (例: '/status')
-   * @param {string} instanceId - EC2インスタンスのID
+   * @param {string} [instanceId] - EC2インスタンスのID (optional)
    */
-  async function sendRequest(path: string, instanceId: string) {
+  async function sendRequest(path: string, instanceId?: string) {
     const resultArea = document.getElementById('result-area');
     if (!resultArea) return;
 
@@ -171,32 +171,39 @@ function displayError(parentElement: HTMLElement, message: string) {
 
     resultArea.innerHTML = '処理中...';
 
-    if (!instanceId) {
-      resultArea.innerHTML = 'エラー: Missing instance ID';
-      return;
+    // fetchに渡すオプションを動的に作成
+    const fetchOptions: RequestInit = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    };
+
+    // instanceIdが渡された場合のみ、bodyに含める
+    if (instanceId) {
+        fetchOptions.body = JSON.stringify({ instanceId: instanceId });
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}${path}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instanceId: instanceId }),
-      });
-
+      const response = await fetch(`${apiBaseUrl}${path}`, fetchOptions);
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || '不明なエラーが発生しました');
+        throw new Error(data.error || data.message || '不明なエラーが発生しました');
       }
 
-      displayResult(resultArea, data);
+      // パスに応じて表示を切り替える
+      if (path === '/status') {
+        displayResult(resultArea, data);
+      } else {
+        // /start からのシンプルなメッセージを表示
+        resultArea.innerHTML = `<p>${data.message}</p>`;
+      }
 
     } catch (error) {
       console.error('API request failed:', error);
       if (error instanceof Error) {
         displayError(resultArea, error.message);
       } else {
-        resultArea.innerHTML = '予期せぬエラーが発生しました。';
+        displayError(resultArea, '予期せぬエラーが発生しました。');
       }
     }
   }
@@ -207,15 +214,11 @@ function displayError(parentElement: HTMLElement, message: string) {
       sendRequest('/status', config.instanceId);
     } else {
       console.error("Instance ID is not configured.");
+      displayError(document.getElementById('result-area')!, 'インスタンスIDが設定されていません。');
     }
   });
 
   startInstanceBtn?.addEventListener('click', async () => {
-    const config = await getAppConfig();
-    if (config.instanceId) {
-      sendRequest('/start', config.instanceId);
-    } else {
-      console.error("Instance ID is not configured.");
-    }
+    sendRequest('/start');
   });
 </script>
